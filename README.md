@@ -2,16 +2,46 @@
 
 GitHub Action for publishing to NPM using OIDC authentication with release-it.
 
-## Prerequisites
+## Requirements
 
-1. Configure NPM Trusted Publishing on npmjs.com:
-   - Go to package settings → "Configure Trusted Publishing"
-   - Set repository and workflow path
+### 1. Install release-it
 
-2. Your repo needs:
-   - `release-it` as a dev dependency
-   - `.release-it.json` with `"npm": { "skipChecks": true }`
-   - Node version in `package.json` (volta or engines)
+```bash
+npm install --save-dev release-it @release-it/conventional-changelog
+```
+
+### 2. Configure release-it
+
+Create or update `.release-it.json` with `skipChecks` enabled (required for OIDC since there's no token to validate before publishing):
+
+```json
+{
+  "npm": {
+    "skipChecks": true
+  },
+  "git": {
+    "commitMessage": "chore: release v${version}"
+  },
+  "github": {
+    "release": true
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "infile": "CHANGELOG.md",
+      "preset": "conventionalcommits"
+    }
+  }
+}
+```
+
+### 3. Configure NPM Trusted Publishing
+
+On npmjs.com:
+1. Go to your package → Settings → "Configure Trusted Publishing"
+2. Set:
+   - **Repository**: `your-org/your-repo`
+   - **Workflow**: `.github/workflows/release.yml` (or your workflow path)
+   - **Environment**: leave blank
 
 ## Usage
 
@@ -66,3 +96,11 @@ jobs:
 | `release_type` | `release` or `prerelease` | `release` |
 | `increment` | Version bump: `major`, `minor`, `patch`, or blank for auto | `''` |
 | `dist_tag` | NPM dist tag for prereleases | `alpha` |
+
+## How it works
+
+- Detects package manager (yarn or npm) from lock file
+- Uses Node 22 with npm 10+ for OIDC support
+- Configures git with the GitHub actor
+- Installs dependencies (`yarn install --immutable` or `npm ci`)
+- Runs release-it with the appropriate flags

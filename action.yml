@@ -35,15 +35,32 @@ runs:
         git config user.name "${GITHUB_ACTOR}"
         git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
+    - name: Detect package manager
+      id: detect-pm
+      shell: bash
+      run: |
+        if [ -f "yarn.lock" ]; then
+          echo "pm=yarn" >> $GITHUB_OUTPUT
+          echo "run=yarn dlx" >> $GITHUB_OUTPUT
+        else
+          echo "pm=npm" >> $GITHUB_OUTPUT
+          echo "run=npx" >> $GITHUB_OUTPUT
+        fi
+
     - name: Install dependencies
       shell: bash
-      run: npm ci
+      run: |
+        if [ "${{ steps.detect-pm.outputs.pm }}" == "yarn" ]; then
+          yarn install --immutable
+        else
+          npm ci
+        fi
 
     - name: Run release-it
       shell: bash
       run: |
         if [ "${{ inputs.release_type }}" == "prerelease" ]; then
-          npx release-it --ci ${{ inputs.increment }} --preRelease=${{ inputs.dist_tag }} --github.preRelease
+          ${{ steps.detect-pm.outputs.run }} release-it --ci ${{ inputs.increment }} --preRelease=${{ inputs.dist_tag }} --github.preRelease
         else
-          npx release-it --ci ${{ inputs.increment }}
+          ${{ steps.detect-pm.outputs.run }} release-it --ci ${{ inputs.increment }}
         fi

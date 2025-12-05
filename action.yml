@@ -1,0 +1,53 @@
+name: 'NPM OIDC Release'
+description: 'Publish to NPM using OIDC authentication with release-it'
+author: 'nicksteffens'
+
+branding:
+  icon: 'package'
+  color: 'red'
+
+inputs:
+  release_type:
+    description: 'Release type: release or prerelease'
+    required: false
+    default: 'release'
+  increment:
+    description: 'Version increment (major, minor, patch) - leave blank for auto'
+    required: false
+    default: ''
+  dist_tag:
+    description: 'Pre-release dist tag (only used for prerelease)'
+    required: false
+    default: 'alpha'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: 'package.json'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Upgrade npm for OIDC support
+      shell: bash
+      run: npm install -g npm@latest
+
+    - name: Configure git
+      shell: bash
+      run: |
+        git config user.name "${GITHUB_ACTOR}"
+        git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Run release-it
+      shell: bash
+      run: |
+        if [ "${{ inputs.release_type }}" == "prerelease" ]; then
+          npx release-it --ci ${{ inputs.increment }} --preRelease=${{ inputs.dist_tag }} --github.preRelease
+        else
+          npx release-it --ci ${{ inputs.increment }}
+        fi

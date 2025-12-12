@@ -51,7 +51,7 @@ jobs:
         run: |
           # Get the latest tag just created
           LATEST_TAG=$(git describe --tags --abbrev=0)
-          MAJOR_TAG="v${LATEST_TAG#v}" && MAJOR_TAG="v${MAJOR_TAG%%.*}"
+          MAJOR_TAG="${LATEST_TAG%%.*}"
 
           # Delete existing major tag if it exists
           git tag -d "${MAJOR_TAG}" 2>/dev/null || true

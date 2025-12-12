@@ -96,28 +96,43 @@ jobs:
 | `release_type` | `release` or `prerelease` | `release` |
 | `increment` | Version bump: `major`, `minor`, `patch`, or blank for auto | `''` |
 | `dist_tag` | NPM dist tag for prereleases | `alpha` |
-| `working_directory` | Directory to run the release from (for monorepos/workspaces) | `.` |
+| `workspace` | NPM workspace name for monorepo releases | `''` |
 
 ### Monorepo / Workspace Usage
 
-For releasing a package from a subdirectory (e.g., npm workspaces):
+For releasing a package from an npm workspace:
 
 ```yaml
 - uses: nicksteffens/npm-oidc-release@v1
   with:
     release_type: ${{ inputs.release_type }}
-    working_directory: packages/my-package
+    workspace: eslint-plugin-ui
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+The action uses `npx --workspace=<name>` to run release-it in the workspace context. This requires:
+
+1. The workspace is defined in root `package.json`:
+   ```json
+   {
+     "workspaces": ["eslint-plugin-ui", "mcp-server"]
+   }
+   ```
+
+2. The workspace has its own `.release-it.json` configuration
+
+3. NPM Trusted Publishing is configured for the workspace package on npmjs.com
+
 ## How it works
 
-- Detects package manager (yarn or npm) from lock file
 - Uses Node LTS with the latest npm version for OIDC support
 - Configures git with the GitHub actor
-- Installs dependencies (`yarn install --immutable` or `npm ci`)
-- Runs release-it with the appropriate flags
+- Detects package manager (yarn or npm) from lock file
+- Installs dependencies at root (`yarn install --immutable` or `npm ci`)
+- Runs release-it with appropriate flags
+  - For workspaces: `npx --workspace=<name> release-it ...`
+  - For root packages: `npx release-it ...`
 
 ## Known Issues
 

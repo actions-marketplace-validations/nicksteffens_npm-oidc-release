@@ -19,6 +19,10 @@ inputs:
     description: 'Pre-release dist tag (only used for prerelease)'
     required: false
     default: 'alpha'
+  workspace:
+    description: 'NPM workspace name for monorepo releases (e.g., eslint-plugin-ui)'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -57,15 +61,30 @@ runs:
       run: |
         if [ -f "yarn.lock" ]; then
           yarn install --immutable
-        else
+        elif [ -f "package-lock.json" ]; then
           npm ci
+        else
+          npm install
         fi
 
     - name: Run release-it
       shell: bash
       run: |
-        if [ "${{ inputs.release_type }}" == "prerelease" ]; then
-          npx release-it --ci ${{ inputs.increment }} --preRelease=${{ inputs.dist_tag }} --github.preRelease
+        WORKSPACE="${{ inputs.workspace }}"
+        RELEASE_TYPE="${{ inputs.release_type }}"
+        INCREMENT="${{ inputs.increment }}"
+        DIST_TAG="${{ inputs.dist_tag }}"
+
+        # Build the release-it command
+        if [ "$RELEASE_TYPE" == "prerelease" ]; then
+          RELEASE_CMD="release-it --ci ${INCREMENT} --preRelease=${DIST_TAG} --github.preRelease"
         else
-          npx release-it --ci ${{ inputs.increment }}
+          RELEASE_CMD="release-it --ci ${INCREMENT}"
+        fi
+
+        # Run with workspace flag if provided, otherwise run directly
+        if [ -n "$WORKSPACE" ]; then
+          npx --workspace="$WORKSPACE" $RELEASE_CMD
+        else
+          npx $RELEASE_CMD
         fi
